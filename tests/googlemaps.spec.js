@@ -29,4 +29,5 @@ test('Google Maps search and directions - simple', async ({ page }) => {
   await expect(destinationInput).toBeVisible({ timeout: 50000 });
   const destinationValue = await destinationInput.inputValue();
   expect(destinationValue).toContain('Dublin');
+  // adicionar qualquer coisa
 });
