@@ -28,6 +28,8 @@ class LoginPage {
         await this.botaoLogin.click();
     }
 
+    
+
     async VerificarSeUsuarioEstaLogado() {
         await expect(this.page).toHaveURL(/automationexercise.com/);
         const messageText = await this.mensagemBoasVindas.innerText();

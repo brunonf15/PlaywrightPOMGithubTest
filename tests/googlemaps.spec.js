@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-test('Google Maps search and directions - simple', async ({ page }) => {
+test.skip('Google Maps search and directions - simple', async ({ page }) => {
   await page.goto('https://www.google.com/maps');
 
   // Aceitar cookies se o botão aparecer

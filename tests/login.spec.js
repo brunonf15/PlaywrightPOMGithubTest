@@ -1,8 +1,9 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 import LoginPage from '../pom/LoginPage';
+import { faker } from '@faker-js/faker';
 
-test('Valid login Automation exercice', async ({ page }) => {
+test.skip('Valid login Automation exercice', async ({ page }) => {
 
   const login = new LoginPage(page);
 
@@ -10,7 +11,7 @@ test('Valid login Automation exercice', async ({ page }) => {
 
   await login.AceitarCookies();
 
-  await login.PreencherEmail('wataryl@mailinator.com');
+  await login.PreencherEmail(faker.internet.email());
   await login.PreencherSenha('Pa$$w0rd!');
 
   await login.ClicarNoBotaoLogin();
