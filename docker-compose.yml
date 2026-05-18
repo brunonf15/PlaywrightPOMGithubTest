@@ -70,15 +70,39 @@ services:
         echo ">> Concluído (exit=$$TEST_EXIT)"
         exit $$TEST_EXIT
 
-  # Opção B (alternativa): Jenkins faz checkout e monta o workspace.
-  # Mais rápido (sem clone dentro do container). Para usar, descomente
-  # e chame:  docker compose run --rm playwright-local
-  #
-  # playwright-local:
-  #   image: mcr.microsoft.com/playwright:v1.57.0-jammy
-  #   working_dir: /work
-  #   environment:
-  #     CI: "true"
-  #   volumes:
-  #     - .:/work
-  #   command: ["bash", "-lc", "npm ci && npx playwright test"]
+  # Opção B: roda os testes usando o código LOCAL (sem clone).
+  # Útil para testar mudanças antes de commitar.
+  # Uso:
+  #   docker compose run --rm playwright-local
+  playwright-local:
+    image: mcr.microsoft.com/playwright:v1.57.0-jammy
+    container_name: playwright-local
+    working_dir: /work
+    environment:
+      CI: "true"
+    volumes:
+      - .:/work
+    command:
+      - bash
+      - -lc
+      - |
+        set -e
+        echo ">> Instalando dependências"
+        npm ci
+        echo ">> Executando testes Playwright"
+        npx playwright test
+
+  # Servidor Allure: lê ./reports/allure-results e expõe o relatório em http://localhost:5050
+  # Uso:
+  #   docker compose up allure
+  # Depois abra: http://localhost:5050/allure-docker-service/projects/default/reports/latest/index.html
+  allure:
+    image: frankescobar/allure-docker-service
+    container_name: allure
+    ports:
+      - "5050:5050"
+    environment:
+      CHECK_RESULTS_EVERY_SECONDS: 3
+      KEEP_HISTORY: "1"
+    volumes:
+      - ./reports/allure-results:/app/allure-results
