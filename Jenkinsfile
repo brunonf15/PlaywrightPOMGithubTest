@@ -8,8 +8,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'REPO_BRANCH', defaultValue: 'main', description: 'Branch do repositório a ser testada')
-        string(name: 'REPO_URL',    defaultValue: 'https://github.com/brunofigueiredo/PlaywrightPOMGithubTest.git', description: 'URL do repositório')
+        string(name: 'REPO_BRANCH', defaultValue: 'docker', description: 'Branch do repositório a ser testada')
+        string(name: 'REPO_URL',    defaultValue: 'https://github.com/brunonf15/PlaywrightPOMGithubTest', description: 'URL do repositório')
     }
 
     environment {
@@ -26,13 +26,25 @@ pipeline {
 
         stage('Limpar relatórios anteriores') {
             steps {
-                sh 'rm -rf reports || true'
+                script {
+                    if (isUnix()) {
+                        sh 'rm -rf reports || true'
+                    } else {
+                        bat 'if exist reports rmdir /s /q reports'
+                    }
+                }
             }
         }
 
         stage('Executar testes Playwright (Docker)') {
             steps {
-                sh 'docker compose run --rm playwright-tests'
+                script {
+                    if (isUnix()) {
+                        sh 'docker compose run --rm playwright-tests'
+                    } else {
+                        bat 'docker compose run --rm playwright-tests'
+                    }
+                }
             }
         }
     }
@@ -41,27 +53,12 @@ pipeline {
         always {
             archiveArtifacts artifacts: 'reports/**', allowEmptyArchive: true, fingerprint: true
 
-            publishHTML(target: [
-                reportName: 'Playwright HTML Report',
-                reportDir:  'reports/playwright-report',
-                reportFiles: 'index.html',
-                keepAll: true,
-                alwaysLinkToLastBuild: true,
-                allowMissing: true
+            // Allure (plugin "Allure Jenkins Plugin" deve estar instalado)
+            allure([
+                includeProperties: false,
+                jdk: '',
+                results: [[path: 'reports/allure-results']]
             ])
-
-            // Requer o plugin Allure Jenkins instalado e configurado em "Global Tool Configuration".
-            script {
-                try {
-                    allure([
-                        includeProperties: false,
-                        jdk: '',
-                        results: [[path: 'reports/allure-results']]
-                    ])
-                } catch (err) {
-                    echo "Plugin Allure não disponível ou sem resultados: ${err}"
-                }
-            }
         }
         success { echo 'Testes Playwright executados com sucesso.' }
         failure { echo 'Falha na execução dos testes Playwright. Verifique o relatório.' }

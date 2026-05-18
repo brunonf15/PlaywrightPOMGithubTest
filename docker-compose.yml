@@ -8,16 +8,19 @@ services:
   playwright-tests:
     image: mcr.microsoft.com/playwright:v1.57.0-jammy
     container_name: playwright-tests
-    working_dir: /tests
+    working_dir: /work
     environment:
       CI: "true"
-      REPO_URL: ${REPO_URL:-https://github.com/brunofigueiredo/PlaywrightPOMGithubTest.git}
+      REPO_URL: ${REPO_URL:-https://github.com/brunonf15/PlaywrightPOMGithubTest.git}
       REPO_BRANCH: ${REPO_BRANCH:-main}
-    # Persistir relatórios no host
+    # Relatórios persistidos no host em ./reports.
+    # IMPORTANTE: montamos em /output (fora de /work/repo) para não criar
+    # mount points dentro do diretório do clone — senão o git clone falha
+    # e o rm não consegue limpar.
     volumes:
-      - ./reports/playwright-report:/tests/repo/playwright-report
-      - ./reports/allure-results:/tests/repo/my-allure-results
-      - ./reports/test-results:/tests/repo/test-results
+      - ./reports/playwright-report:/output/playwright-report
+      - ./reports/allure-results:/output/allure-results
+      - ./reports/test-results:/output/test-results
     entrypoint: ["/bin/bash", "-lc"]
     command:
       - |
@@ -29,7 +32,43 @@ services:
         echo ">> Instalando dependências"
         npm ci
         echo ">> Executando testes Playwright"
+        set +e
         npx playwright test
+        TEST_EXIT=$$?
+        set -e
+        echo ">> Conteúdo do repo após testes:"
+        ls -la
+        echo ">> Copiando relatórios para /output"
+        # Limpa o conteúdo dos volumes (preserva os mount points)
+        find /output/playwright-report -mindepth 1 -delete 2>/dev/null || true
+        find /output/allure-results   -mindepth 1 -delete 2>/dev/null || true
+        find /output/test-results     -mindepth 1 -delete 2>/dev/null || true
+        if [ -d playwright-report ]; then
+          echo ">> Copiando playwright-report ($$(ls playwright-report | wc -l) itens)"
+          cp -rv playwright-report/. /output/playwright-report/
+        else
+          echo ">> AVISO: playwright-report não existe"
+        fi
+        # allure-playwright pode gerar em "allure-results" (default) ou "my-allure-results" (config customizada)
+        ALLURE_SRC=""
+        [ -d allure-results ]    && ALLURE_SRC="allure-results"
+        [ -d my-allure-results ] && ALLURE_SRC="my-allure-results"
+        if [ -n "$$ALLURE_SRC" ]; then
+          echo ">> Copiando $$ALLURE_SRC ($$(ls $$ALLURE_SRC | wc -l) itens)"
+          cp -rv $$ALLURE_SRC/. /output/allure-results/
+        else
+          echo ">> AVISO: nenhuma pasta de resultados allure encontrada"
+        fi
+        if [ -d test-results ]; then
+          echo ">> Copiando test-results ($$(ls test-results | wc -l) itens)"
+          cp -rv test-results/. /output/test-results/
+        else
+          echo ">> AVISO: test-results não existe"
+        fi
+        echo ">> Final /output/allure-results:"
+        ls -la /output/allure-results | head -20
+        echo ">> Concluído (exit=$$TEST_EXIT)"
+        exit $$TEST_EXIT
 
   # Opção B (alternativa): Jenkins faz checkout e monta o workspace.
   # Mais rápido (sem clone dentro do container). Para usar, descomente
