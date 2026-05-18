@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "test": "playwright test",
+    "test:docker": "docker compose run --rm playwright-tests"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

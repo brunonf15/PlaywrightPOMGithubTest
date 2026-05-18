@@ -1,0 +1,45 @@
+services:
+  # Opção A: o container clona o repo e executa os testes.
+  # Uso (Jenkins ou local):
+  #   docker compose run --rm playwright-tests
+  # Variáveis opcionais:
+  #   REPO_URL    - URL do repositório (default: este repo no GitHub)
+  #   REPO_BRANCH - branch a ser testada (default: main)
+  playwright-tests:
+    image: mcr.microsoft.com/playwright:v1.57.0-jammy
+    container_name: playwright-tests
+    working_dir: /tests
+    environment:
+      CI: "true"
+      REPO_URL: ${REPO_URL:-https://github.com/brunofigueiredo/PlaywrightPOMGithubTest.git}
+      REPO_BRANCH: ${REPO_BRANCH:-main}
+    # Persistir relatórios no host
+    volumes:
+      - ./reports/playwright-report:/tests/repo/playwright-report
+      - ./reports/allure-results:/tests/repo/my-allure-results
+      - ./reports/test-results:/tests/repo/test-results
+    entrypoint: ["/bin/bash", "-lc"]
+    command:
+      - |
+        set -e
+        echo ">> Clonando $$REPO_URL (branch $$REPO_BRANCH)"
+        rm -rf repo
+        git clone --depth 1 --branch "$$REPO_BRANCH" "$$REPO_URL" repo
+        cd repo
+        echo ">> Instalando dependências"
+        npm ci
+        echo ">> Executando testes Playwright"
+        npx playwright test
+
+  # Opção B (alternativa): Jenkins faz checkout e monta o workspace.
+  # Mais rápido (sem clone dentro do container). Para usar, descomente
+  # e chame:  docker compose run --rm playwright-local
+  #
+  # playwright-local:
+  #   image: mcr.microsoft.com/playwright:v1.57.0-jammy
+  #   working_dir: /work
+  #   environment:
+  #     CI: "true"
+  #   volumes:
+  #     - .:/work
+  #   command: ["bash", "-lc", "npm ci && npx playwright test"]
