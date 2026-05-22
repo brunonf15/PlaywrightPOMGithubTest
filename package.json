@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
-    "test:docker": "docker compose run --rm playwright-tests"
+    "test:docker": "docker compose run --rm playwright-tests",
+    "test:dockerlocal": "docker compose run --rm playwright-local",
+    "generatereport": "allure generate ./allure-results/ --clean",
+    "openreport": "allure open ./allure-report/"
   },
   "keywords": [],
   "author": "",
